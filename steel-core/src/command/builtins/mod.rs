@@ -28,6 +28,7 @@ mod tellraw;
 mod tick;
 mod time;
 mod weather;
+mod setidletimeout;
 
 pub(crate) use difficulty::player_can_change_difficulty;
 
