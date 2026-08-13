@@ -27,22 +27,27 @@ pub(super) const DELAYED_LEASH_DROP_TICKS: i32 = 100;
 
 /// Vanilla-shaped behavior shared by entities that extend `Leashable`.
 pub trait Leashable: Entity {
+    /// Returns the shared leash data (if any).
     fn leash_data(&self) -> &SyncMutex<Option<LeashData>>;
 
+    /// Returns whether this entity is leashed. Mirrors Vanilla's `Leashable.isLeashed`.
     fn is_leashed(&self) -> bool {
         self.leash_holder().is_some()
     }
 
+    /// Mirrors Vanilla's `Leashable.mayBeLeashed`.
     fn may_be_leashed(&self) -> bool {
         self.leash_data().lock().is_some()
     }
 
+    /// Returns the entity holding this entity with a leash, if any.
     fn leash_holder(&self) -> Option<SharedEntity> {
         self.leash_data()
             .lock()
             .as_ref()
             .and_then(LeashData::holder)
     }
+
 
     fn leash_attachment(&self) -> Option<LeashAttachment> {
         self.leash_data()
@@ -55,20 +60,24 @@ pub trait Leashable: Entity {
         *self.leash_data().lock() = Some(LeashData::from_delayed_attachment(attachment));
     }
 
+    /// Mirrors Vanilla's `Leashable.canBeLeashed`.
     fn can_be_leashed(&self) -> bool {
         // TODO: Return false for enemy mobs once hostile mob foundations exist.
         true
     }
 
+    /// Mirrors Vanilla's `Leashable.leashDistanceTo`.
     fn leash_distance_to(&self, holder: &dyn Entity) -> f64 {
         leash_bounding_box_center(self.as_entity_event_source())
             .distance(leash_bounding_box_center(holder))
     }
 
+    /// Returns the minimum leash distance for which a leash will snap.
     fn leash_snap_distance(&self) -> f64 {
         LEASH_SNAP_DISTANCE
     }
 
+    /// Returns the maximum leash distance for which a leash will stay elastic.
     fn leash_elastic_distance(&self) -> f64 {
         LEASH_ELASTIC_DISTANCE
     }
@@ -158,12 +167,14 @@ pub trait Leashable: Entity {
         0.91
     }
 
+    /// Returns whether this entity can have a leash attached to another. Mirrors Vanilla's `Leashable.canHaveALeashAttachedTo`.
     fn can_have_a_leash_attached_to(&self, holder: &dyn Entity) -> bool {
         self.id() != holder.id()
             && self.leash_distance_to(holder) <= self.leash_snap_distance()
             && self.can_be_leashed()
     }
 
+    /// Mirrors Vanilla's `Leashable.setLeashedTo`.
     fn set_leashed_to(&self, holder: &SharedEntity) -> bool {
         if self.id() == holder.id() {
             return false;
@@ -190,6 +201,7 @@ pub trait Leashable: Entity {
         true
     }
 
+    /// Ticks the leash *holding* this entity. Mirrors Vanilla's `Leashable.tickLeash`.
     fn tick_leash(&self) {
         if let Some(holder) = self.leash_holder() {
             if !self.can_interact_with_level() || !holder.can_interact_with_level() {
@@ -270,6 +282,7 @@ pub trait Leashable: Entity {
         }
     }
 
+    /// Breaks the leash and drops a lead item. Mirrors Vanilla's `Leashable.dropLeash`.
     fn drop_leash(&self) {
         if self.leash_holder().is_none() {
             return;
@@ -282,6 +295,7 @@ pub trait Leashable: Entity {
         }
     }
 
+    /// Removes the leash without dropping a lead item. Mirrors Vanilla's `Leashable.removeLeash`.
     fn remove_leash(&self) {
         if self.leash_holder().is_some()
             && let Some(holder) = self.remove_leash_state()
@@ -290,6 +304,7 @@ pub trait Leashable: Entity {
         }
     }
 
+    /// Removes the leash state of this entity, returning its holder before the leash's removal.
     fn remove_leash_state(&self) -> Option<SharedEntity> {
         self.leash_data()
             .lock()
