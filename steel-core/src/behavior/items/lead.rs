@@ -12,6 +12,10 @@ use steel_registry::{sound_events, vanilla_game_events};
 use steel_utils::BlockPos;
 
 /// Vanilla lead item behavior.
+///
+/// The behavior does not handle the main functionality of a lead, but rather its block use functionality:
+/// right-clicking a fence removes the knot from the user and places a knot at the right-clicked fence for
+/// all entities (`Leashable`s) leashed by the user.
 #[item_behavior]
 pub struct LeadItem;
 
@@ -25,6 +29,7 @@ impl LeadItem {
         if entities_to_leash.is_empty() {
             return InteractionResult::Pass;
         }
+
         let existing_knot_exists = LeashFenceKnotEntity::get_knot(world, pos).is_some();
         let Some(knot) = LeashFenceKnotEntity::get_or_create_knot(world, pos) else {
             return InteractionResult::Pass;

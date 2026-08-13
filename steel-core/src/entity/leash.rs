@@ -48,7 +48,6 @@ pub trait Leashable: Entity {
             .and_then(LeashData::holder)
     }
 
-
     fn leash_attachment(&self) -> Option<LeashAttachment> {
         self.leash_data()
             .lock()
