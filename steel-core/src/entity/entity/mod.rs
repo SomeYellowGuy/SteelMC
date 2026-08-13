@@ -1,4 +1,5 @@
 use super::*;
+use crate::entity::leash::Leashable;
 
 /// Final state accepted from a client-authored movement packet.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -1181,14 +1182,11 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
         let Some(world) = self.level() else {
             return Vec::new();
         };
-        let holder_id = holder.id();
-        let scan_area = leash_scan_area(world_aabb_center(self.bounding_box()));
-        world.get_entities_in_aabb_matching(&scan_area, |entity| {
-            entity.as_mob().is_some_and(|mob| {
-                mob.leash_holder()
-                    .is_some_and(|holder| holder.id() == holder_id)
-            })
-        })
+        leashables_leashed_to_holder_in_area_near_position(
+            &world,
+            world_aabb_center(self.bounding_box()),
+            holder,
+        )
     }
 
     /// Transfers leashables currently held by `old_holder` to this entity.
@@ -1500,6 +1498,18 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
     /// Mirrors vanilla's frequent `instanceof Mob` branches.
     fn as_mob(&self) -> Option<&dyn Mob> {
         try_as_dyn::<Self, dyn Mob>(self)
+    }
+
+    /// Returns true for entities that implement [`Leashable`].
+    fn is_leashable(&self) -> bool {
+        self.as_mob().is_some()
+    }
+
+    /// Returns this entity as a mob when it has mob behavior.
+    ///
+    /// Mirrors vanilla's frequent `instanceof Mob` branches.
+    fn as_leashable(&self) -> Option<&dyn Leashable> {
+        try_as_dyn::<Self, dyn Leashable>(self)
     }
 
     /// Returns true for entities that implement vanilla animal behavior.

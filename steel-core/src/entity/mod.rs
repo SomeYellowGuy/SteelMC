@@ -1338,5 +1338,22 @@ pub(crate) fn entity_loot_ref(entity: &dyn Entity) -> EntityRef<'_> {
     }
 }
 
+/// Finds the leashable mobs near a position whose holder is `holder`.
+pub fn leashables_leashed_to_holder_in_area_near_position(
+    world: &Arc<World>,
+    pos: DVec3,
+    holder: &dyn Entity,
+) -> Vec<SharedEntity> {
+    let holder_id = holder.id();
+    let scan_area = leash_scan_area(pos);
+    world.get_entities_in_aabb_matching(&scan_area, |entity| {
+        entity.as_leashable().is_some_and(|mob| {
+            mob.leash_holder()
+                .is_some_and(|holder| holder.id() == holder_id)
+        })
+    })
+}
+
+mod leash;
 #[cfg(test)]
 mod tests;
