@@ -1502,7 +1502,7 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
 
     /// Returns true for entities that implement [`Leashable`].
     fn is_leashable(&self) -> bool {
-        self.as_mob().is_some()
+        self.as_leashable().is_some()
     }
 
     /// Returns this entity as a `Leashable` when it has [`Leashable`] behavior.
