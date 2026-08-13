@@ -1335,7 +1335,7 @@ pub trait Mob: LivingEntity + Leashable {
     }
 }
 
-// Blan
+// Blanket implementation for all mobs to implement `Leashable`
 impl<T: Mob> Leashable for T {
     fn leash_data(&self) -> &SyncMutex<Option<LeashData>> {
         self.mob_base().leash_data()
