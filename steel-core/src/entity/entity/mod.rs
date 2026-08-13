@@ -1505,9 +1505,9 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
         self.as_mob().is_some()
     }
 
-    /// Returns this entity as a mob when it has mob behavior.
+    /// Returns this entity as a `Leashable` when it has [`Leashable`] behavior.
     ///
-    /// Mirrors vanilla's frequent `instanceof Mob` branches.
+    /// Mirrors vanilla's frequent `instanceof Leashable` branches.
     fn as_leashable(&self) -> Option<&dyn Leashable> {
         try_as_dyn::<Self, dyn Leashable>(self)
     }
