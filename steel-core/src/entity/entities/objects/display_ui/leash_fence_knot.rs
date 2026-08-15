@@ -276,7 +276,7 @@ impl Entity for LeashFenceKnotEntity {
             return InteractionResult::Pass;
         };
         if !attached_mob && !player.is_secondary_use_active() {
-            for entity in player.leashables_leashed_to() {
+            for entity in knot.leashables_leashed_to() {
                 if let Some(leashable) = entity.as_leashable()
                     && leashable.can_have_a_leash_attached_to(player)
                 {

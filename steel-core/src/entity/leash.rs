@@ -315,9 +315,17 @@ pub enum LeashAttachment {
 
 #[derive(Debug, Clone)]
 pub struct LeashData {
-    pub attachment: Option<LeashAttachment>,
-    pub holder: Option<WeakEntity>,
+    pub holder: LeashHolder,
     pub angular_momentum: f64,
+}
+
+/// Represents the holder of a leash (entity holding the leash).
+#[derive(Debug, Clone)]
+pub enum LeashHolder {
+    /// A direct entity reference to the leash holder.
+    Entity(WeakEntity),
+    /// An indirect attachment (reference) to the leash holder, which can be resolved later.
+    Delayed(LeashAttachment),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -335,40 +343,50 @@ impl LeashWrench {
 impl LeashData {
     pub(crate) fn from_entity(holder: &SharedEntity) -> Self {
         Self {
-            attachment: None,
-            holder: Some(Arc::downgrade(holder)),
+            holder: LeashHolder::Entity(Arc::downgrade(holder)),
             angular_momentum: 0.0,
         }
     }
 
     pub(crate) const fn from_delayed_attachment(attachment: LeashAttachment) -> Self {
         Self {
-            attachment: Some(attachment),
-            holder: None,
+            holder: LeashHolder::Delayed(attachment),
             angular_momentum: 0.0,
         }
     }
 
     pub(super) fn holder(&self) -> Option<SharedEntity> {
-        self.holder.as_ref().and_then(WeakEntity::upgrade)
+        let LeashHolder::Entity(entity) = &self.holder else {
+            return None;
+        };
+        entity.upgrade()
     }
 
     pub(super) const fn attachment(&self) -> Option<LeashAttachment> {
-        self.attachment
+        let LeashHolder::Delayed(attachment) = self.holder else {
+            return None;
+        };
+        Some(attachment)
     }
 
     pub(super) fn saved_attachment(&self) -> Option<LeashAttachment> {
-        self.holder().map_or(self.attachment, |holder| {
-            holder.downcast_ref::<LeashFenceKnotEntity>().map_or_else(
-                || Some(LeashAttachment::Entity(holder.uuid())),
-                |knot| Some(LeashAttachment::FenceKnot(knot.block_pos())),
-            )
-        })
+        match &self.holder {
+            LeashHolder::Entity(holder) => {
+                let upgraded = holder.upgrade()?;
+                if let Some(knot) = upgraded.downcast_ref::<LeashFenceKnotEntity>() {
+                    // This is a leash knot. Store a position.
+                    Some(LeashAttachment::FenceKnot(knot.block_pos()))
+                } else {
+                    // This is a normal entity. Store its UUID.
+                    Some(LeashAttachment::Entity(upgraded.uuid()))
+                }
+            }
+            LeashHolder::Delayed(attachment) => Some(*attachment),
+        }
     }
 
     pub(super) fn set_holder(&mut self, holder: &SharedEntity) {
-        self.attachment = None;
-        self.holder = Some(Arc::downgrade(holder));
+        self.holder = LeashHolder::Entity(Arc::downgrade(holder));
         self.angular_momentum = 0.0;
     }
 
