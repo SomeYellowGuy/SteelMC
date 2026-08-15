@@ -199,7 +199,7 @@ fn leash_scan_area(center: DVec3) -> WorldAabb {
 fn transfer_leashables_to_holder(leashables: Vec<SharedEntity>, new_holder: &SharedEntity) -> bool {
     let mut transferred = false;
     for leashable in leashables {
-        let Some(mob) = leashable.as_mob() else {
+        let Some(mob) = leashable.as_leashable() else {
             continue;
         };
         if mob.can_have_a_leash_attached_to(new_holder.as_ref()) {

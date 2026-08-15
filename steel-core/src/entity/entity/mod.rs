@@ -958,7 +958,7 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
         self.check_below_world();
         self.sync_base_fire_freeze_entity_data();
         // Vanilla checks `this instanceof Leashable` inside `Entity.baseTick`.
-        if let Some(mob) = self.as_mob() {
+        if let Some(mob) = self.as_leashable() {
             mob.tick_leash();
         }
         // VANILLA CLIENT-LOCAL: `Entity.spawnSprintParticle` creates sprint particles.
@@ -1135,6 +1135,17 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
         );
     }
 
+    /// Emits a vanilla game event from this entity's exact position with a player.
+    fn game_event_with_player(&self, event: GameEventRef, player: &Player) {
+        if let Some(world) = self.level() {
+            world.game_event_at(
+                event,
+                self.position(),
+                &GameEventContext::new(Some(player), None),
+            );
+        }
+    }
+
     /// Kills this entity using vanilla's living/non-living class split.
     ///
     /// `world` is vanilla's explicit `ServerLevel` argument. Living entities
@@ -1209,7 +1220,7 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
         let leashables = self.leashables_leashed_to();
         let mut dropped = !leashables.is_empty();
 
-        if let Some(mob) = self.as_mob()
+        if let Some(mob) = self.as_leashable()
             && mob.is_leashed()
         {
             mob.drop_leash();
@@ -1217,7 +1228,7 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
         }
 
         for leashable in leashables {
-            if let Some(mob) = leashable.as_mob() {
+            if let Some(mob) = leashable.as_leashable() {
                 mob.drop_leash();
             }
         }

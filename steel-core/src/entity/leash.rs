@@ -12,7 +12,7 @@ use steel_registry::item_stack::ItemStack;
 use steel_registry::vanilla_game_rules::ENTITY_DROPS;
 use steel_registry::{sound_events, vanilla_items};
 use steel_utils::locks::SyncMutex;
-use steel_utils::{BlockPos, Downcast as _, UuidExt as _};
+use steel_utils::{BlockPos, Downcast, UuidExt as _};
 use uuid::Uuid;
 
 pub(super) const LEASH_SNAP_DISTANCE: f64 = 12.0;
@@ -52,11 +52,12 @@ pub trait Leashable: Entity {
         self.leash_data()
             .lock()
             .as_ref()
-            .map(LeashData::saved_attachment)
+            .and_then(LeashData::attachment)
     }
 
     fn set_delayed_leash_attachment(&self, attachment: LeashAttachment) {
         *self.leash_data().lock() = Some(LeashData::from_delayed_attachment(attachment));
+        self.remove_leash();
     }
 
     /// Mirrors Vanilla's `Leashable.canBeLeashed`.
@@ -200,8 +201,37 @@ pub trait Leashable: Entity {
         true
     }
 
+    /// Mirrors Vanilla's `Leashable.restoreLeashFromSave`.
+    fn restore_leash_from_save(&self) {
+        if let Some(attachment) = self.leash_attachment()
+            && let Some(world) = self.level()
+        {
+            match attachment {
+                LeashAttachment::Entity(uuid) => {
+                    if let Some(holder) = world.get_entity_by_uuid(&uuid) {
+                        let _ = self.set_leashed_to(&holder);
+                        return;
+                    }
+                }
+                LeashAttachment::FenceKnot(pos) => {
+                    if let Some(holder) = LeashFenceKnotEntity::get_or_create_knot(&world, pos) {
+                        let _ = self.set_leashed_to(&holder);
+                        return;
+                    }
+                }
+            }
+
+            if self.tick_count() > DELAYED_LEASH_DROP_TICKS {
+                let _ = self.spawn_at_location(ItemStack::new(&vanilla_items::LEAD), 0.0);
+                self.remove_leash_state();
+            }
+        }
+    }
+
     /// Ticks the leash *holding* this entity. Mirrors Vanilla's `Leashable.tickLeash`.
     fn tick_leash(&self) {
+        self.restore_leash_from_save();
+
         if let Some(holder) = self.leash_holder() {
             if !self.can_interact_with_level() || !holder.can_interact_with_level() {
                 if let Some(world) = self.level()
@@ -211,7 +241,6 @@ pub trait Leashable: Entity {
                 } else {
                     self.remove_leash();
                 }
-                return;
             }
 
             let distance_to = self.leash_distance_to(holder.as_ref());
@@ -243,40 +272,6 @@ pub trait Leashable: Entity {
                 && let Some(angular_momentum) = angular_momentum_before_distance_action
             {
                 self.rotate_by_leash_angular_momentum(angular_momentum);
-            }
-            return;
-        }
-
-        let Some(attachment) = self.leash_attachment() else {
-            return;
-        };
-
-        let Some(world) = self.level() else {
-            return;
-        };
-
-        match attachment {
-            LeashAttachment::Entity(uuid) => {
-                if let Some(holder) = world.get_entity_by_uuid(&uuid) {
-                    let _ = self.set_leashed_to(&holder);
-                    return;
-                }
-
-                if self.tick_count() > DELAYED_LEASH_DROP_TICKS {
-                    let _ = self.spawn_at_location(ItemStack::new(&vanilla_items::LEAD), 0.0);
-                    self.remove_leash_state();
-                }
-            }
-            LeashAttachment::FenceKnot(pos) => {
-                if let Some(holder) = LeashFenceKnotEntity::get_or_create_knot(&world, pos) {
-                    let _ = self.set_leashed_to(&holder);
-                    return;
-                }
-
-                if self.tick_count() > DELAYED_LEASH_DROP_TICKS {
-                    let _ = self.spawn_at_location(ItemStack::new(&vanilla_items::LEAD), 0.0);
-                    self.remove_leash_state();
-                }
             }
         }
     }
@@ -320,7 +315,7 @@ pub enum LeashAttachment {
 
 #[derive(Debug, Clone)]
 pub struct LeashData {
-    pub attachment: LeashAttachment,
+    pub attachment: Option<LeashAttachment>,
     pub holder: Option<WeakEntity>,
     pub angular_momentum: f64,
 }
@@ -339,12 +334,8 @@ impl LeashWrench {
 
 impl LeashData {
     pub(crate) fn from_entity(holder: &SharedEntity) -> Self {
-        let attachment = holder.downcast_ref::<LeashFenceKnotEntity>().map_or_else(
-            || LeashAttachment::Entity(holder.uuid()),
-            |knot| LeashAttachment::FenceKnot(knot.block_pos()),
-        );
         Self {
-            attachment,
+            attachment: None,
             holder: Some(Arc::downgrade(holder)),
             angular_momentum: 0.0,
         }
@@ -352,7 +343,7 @@ impl LeashData {
 
     pub(crate) const fn from_delayed_attachment(attachment: LeashAttachment) -> Self {
         Self {
-            attachment,
+            attachment: Some(attachment),
             holder: None,
             angular_momentum: 0.0,
         }
@@ -362,33 +353,36 @@ impl LeashData {
         self.holder.as_ref().and_then(WeakEntity::upgrade)
     }
 
-    pub(super) fn saved_attachment(&self) -> LeashAttachment {
+    pub(super) const fn attachment(&self) -> Option<LeashAttachment> {
+        self.attachment
+    }
+
+    pub(super) fn saved_attachment(&self) -> Option<LeashAttachment> {
         self.holder().map_or(self.attachment, |holder| {
             holder.downcast_ref::<LeashFenceKnotEntity>().map_or_else(
-                || LeashAttachment::Entity(holder.uuid()),
-                |knot| LeashAttachment::FenceKnot(knot.block_pos()),
+                || Some(LeashAttachment::Entity(holder.uuid())),
+                |knot| Some(LeashAttachment::FenceKnot(knot.block_pos())),
             )
         })
     }
 
     pub(super) fn set_holder(&mut self, holder: &SharedEntity) {
-        self.attachment = holder.downcast_ref::<LeashFenceKnotEntity>().map_or_else(
-            || LeashAttachment::Entity(holder.uuid()),
-            |knot| LeashAttachment::FenceKnot(knot.block_pos()),
-        );
+        self.attachment = None;
         self.holder = Some(Arc::downgrade(holder));
         self.angular_momentum = 0.0;
     }
 
     pub(super) fn save(&self, nbt: &mut NbtCompound) {
-        match self.saved_attachment() {
-            LeashAttachment::Entity(uuid) => {
-                let mut leash = NbtCompound::new();
-                leash.insert("UUID", NbtTag::IntArray(uuid.to_int_array().to_vec()));
-                nbt.insert("leash", NbtTag::Compound(leash));
-            }
-            LeashAttachment::FenceKnot(pos) => {
-                nbt.insert("leash", NbtTag::IntArray(vec![pos.x(), pos.y(), pos.z()]));
+        if let Some(attachment) = self.saved_attachment() {
+            match attachment {
+                LeashAttachment::Entity(uuid) => {
+                    let mut leash = NbtCompound::new();
+                    leash.insert("UUID", NbtTag::IntArray(uuid.to_int_array().to_vec()));
+                    nbt.insert("leash", NbtTag::Compound(leash));
+                }
+                LeashAttachment::FenceKnot(pos) => {
+                    nbt.insert("leash", NbtTag::IntArray(vec![pos.x(), pos.y(), pos.z()]));
+                }
             }
         }
     }

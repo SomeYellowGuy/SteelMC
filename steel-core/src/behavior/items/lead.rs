@@ -20,7 +20,11 @@ use steel_utils::BlockPos;
 pub struct LeadItem;
 
 impl LeadItem {
-    fn bind_player_mobs(player: &Player, world: &Arc<World>, pos: BlockPos) -> InteractionResult {
+    pub(crate) fn bind_player_mobs(
+        player: &Player,
+        world: &Arc<World>,
+        pos: BlockPos,
+    ) -> InteractionResult {
         let entities_to_leash = leashables_leashed_to_holder_in_area_near_position(
             world,
             pos.get_center().into(),
