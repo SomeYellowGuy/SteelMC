@@ -68,8 +68,8 @@ fn transfer_leashables_to_holder_moves_valid_mobs() {
         DVec3::new(1.0, 0.0, 0.0),
         Weak::new(),
     ));
-    let Some(mob) = leashable.as_mob() else {
-        panic!("pig should expose mob behavior");
+    let Some(mob) = leashable.as_leashable() else {
+        panic!("pig should expose leashable behavior");
     };
     assert!(mob.set_leashed_to(&old_holder));
 
@@ -106,8 +106,8 @@ fn transfer_leashables_to_holder_skips_mobs_outside_snap_distance() {
         DVec3::new(20.0, 0.0, 0.0),
         Weak::new(),
     ));
-    let Some(mob) = leashable.as_mob() else {
-        panic!("pig should expose mob behavior");
+    let Some(mob) = leashable.as_leashable() else {
+        panic!("pig should expose leashable behavior");
     };
     assert!(mob.set_leashed_to(&old_holder));
 
@@ -136,8 +136,8 @@ fn set_leashed_to_notifies_replaced_holder() {
         DVec3::ZERO,
         Weak::new(),
     ));
-    let Some(mob) = leashable.as_mob() else {
-        panic!("pig should expose mob behavior");
+    let Some(mob) = leashable.as_leashable() else {
+        panic!("pig should expose leashable behavior");
     };
 
     assert!(mob.set_leashed_to(&old_holder));
@@ -159,8 +159,8 @@ fn tick_leash_notifies_live_holder() {
         DVec3::ZERO,
         Weak::new(),
     ));
-    let Some(mob) = leashable.as_mob() else {
-        panic!("pig should expose mob behavior");
+    let Some(mob) = leashable.as_leashable() else {
+        panic!("pig should expose leashable behavior");
     };
     assert!(mob.set_leashed_to(&holder));
 
@@ -183,8 +183,8 @@ fn tick_leash_snaps_live_holder_past_snap_distance() {
         DVec3::ZERO,
         Weak::new(),
     ));
-    let Some(mob) = leashable.as_mob() else {
-        panic!("pig should expose mob behavior");
+    let Some(mob) = leashable.as_leashable() else {
+        panic!("pig should expose leashable behavior");
     };
     assert!(mob.set_leashed_to(&holder));
 
