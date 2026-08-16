@@ -74,7 +74,6 @@ use crossbeam::queue::SegQueue;
 use glam::DVec3;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use rustc_hash::FxHashMap;
-use std::sync::atomic::AtomicI32;
 use std::{
     collections::BTreeSet,
     io, mem,
@@ -418,7 +417,7 @@ pub struct Server {
     pub tick_rate_manager: SyncRwLock<TickRateManager>,
     /// The number of minutes required for a player to be idle for them to be kicked (timed out) from the server.
     /// If this is equal to 0, no kicking will happen.
-    pub player_idle_timeout: AtomicI32,
+    pub player_idle_timeout: SyncMutex<i32>,
     /// Command scoreboards isolated by Steel domain.
     pub scoreboards: DomainScoreboards,
     /// Command NBT storage isolated by Steel domain.
@@ -712,7 +711,7 @@ impl Server {
             player_admissions: SyncMutex::new(FxHashMap::default()),
             registry_cache,
             tick_rate_manager: SyncRwLock::new(TickRateManager::new()),
-            player_idle_timeout: AtomicI32::new(0),
+            player_idle_timeout: SyncMutex::new(0),
             scoreboards,
             command_storage,
             command_dispatcher: SyncRwLock::new(registered_commands.dispatcher),

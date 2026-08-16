@@ -50,7 +50,6 @@ pub use profile::{
 use simdnbt::owned::{NbtCompound, NbtList, NbtTag};
 use sleep_state::PlayerSleepState;
 use std::mem::replace;
-use std::sync::atomic::Ordering;
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 use steel_protocol::packets::game::{
@@ -1252,7 +1251,7 @@ impl Player {
     }
 
     fn check_idle_timeout(&self) {
-        let player_idle_timeout = self.server().player_idle_timeout.load(Ordering::Relaxed);
+        let player_idle_timeout = *self.server().player_idle_timeout.lock();
         if player_idle_timeout > 0
             && Instant::now().duration_since(*self.last_action_time.lock())
                 > Duration::from_mins(player_idle_timeout as u64)
