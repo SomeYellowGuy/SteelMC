@@ -1255,7 +1255,7 @@ impl Player {
             let player_idle_timeout = *server.player_idle_timeout.lock();
             if player_idle_timeout > 0
                 && Instant::now().duration_since(*self.last_action_time.lock())
-                > Duration::from_mins(player_idle_timeout as u64)
+                    > Duration::from_mins(player_idle_timeout as u64)
                 && !self.has_won_game()
             {
                 self.disconnect(translations::MULTIPLAYER_DISCONNECT_IDLING.msg());
