@@ -288,6 +288,8 @@ impl Player {
             return;
         }
 
+        self.reset_last_action_time();
+
         let Some(entity_id) = packet.spectate_entity_id else {
             return;
         };
