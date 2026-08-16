@@ -153,6 +153,7 @@ mod tests {
                 "return",
                 "seed",
                 "setblock",
+                "setidletimeout",
                 "setworldspawn",
                 "stop",
                 "summon",
