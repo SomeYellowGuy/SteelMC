@@ -24,6 +24,7 @@ pub(super) const LEASH_STIFFNESS: f64 = 0.11;
 pub(super) const ENTITY_LEASH_ATTACHMENT_POINT: DVec3 = DVec3::new(0.0, 0.5, 0.5);
 pub(super) const LEASHER_ATTACHMENT_POINT: DVec3 = DVec3::new(0.0, 0.5, 0.0);
 pub(super) const DELAYED_LEASH_DROP_TICKS: i32 = 100;
+pub(super) const BASE_HORIZONTAL_FRICTION: f64 = 0.91;
 
 /// Vanilla-shaped behavior shared by entities that extend `Leashable`.
 pub trait Leashable: Entity {
@@ -152,19 +153,22 @@ pub trait Leashable: Entity {
     fn leash_angular_friction(&self) -> f64 {
         if self.on_ground() {
             let Some(world) = self.level() else {
-                return 0.91;
+                return BASE_HORIZONTAL_FRICTION;
             };
             let Some(pos) = self.block_pos_below_that_affects_movement() else {
-                return 0.91;
+                return BASE_HORIZONTAL_FRICTION;
             };
-            return f64::from(world.get_block_state(pos).get_block().config.friction * 0.91);
+            return f64::from(
+                world.get_block_state(pos).get_block().config.friction
+                    * BASE_HORIZONTAL_FRICTION as f32,
+            );
         }
 
         if self.is_in_water() || self.is_in_lava() {
             return 0.8;
         }
 
-        0.91
+        BASE_HORIZONTAL_FRICTION
     }
 
     /// Returns whether this entity can have a leash attached to another. Mirrors Vanilla's `Leashable.canHaveALeashAttachedTo`.
