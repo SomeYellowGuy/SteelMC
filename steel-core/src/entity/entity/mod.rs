@@ -1513,7 +1513,7 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
 
     /// Returns this entity as a `Leashable` when it has [`Leashable`] behavior.
     ///
-    /// Mirrors vanilla's frequent `instanceof Leashable` branches.
+    /// Mirrors vanilla's `instanceof Leashable` branches.
     fn as_leashable(&self) -> Option<&dyn Leashable> {
         try_as_dyn::<Self, dyn Leashable>(self)
     }

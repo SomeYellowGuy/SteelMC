@@ -20,7 +20,8 @@ use steel_utils::BlockPos;
 pub struct LeadItem;
 
 impl LeadItem {
-    pub(crate) fn bind_player_mobs(
+    /// Binds all leashable mobs attached to a player to the block with the provided position.
+    pub fn bind_player_mobs(
         player: &Player,
         world: &Arc<World>,
         pos: BlockPos,
