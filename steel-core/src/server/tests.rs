@@ -1,4 +1,5 @@
 use glam::DVec3;
+use std::sync::atomic::AtomicI32;
 use std::{
     env::temp_dir,
     io::Cursor,
@@ -262,7 +263,7 @@ async fn test_server_with_worlds(
         pending_player_disconnects: PlayerDisconnectQueue::new(),
         pending_world_changes: SyncMutex::new(Vec::new()),
         pending_domain_switches: SyncMutex::new(Vec::new()),
-        player_idle_timeout: SyncMutex::new(0),
+        player_idle_timeout: AtomicI32::new(0),
     }))
 }
 

@@ -5,6 +5,7 @@ use crate::command::execution::{
     CommandSource, SteelCommandContext, SteelCommandRuntime, argument, literal,
 };
 use crate::command::registration::CommandRegistration;
+use std::sync::atomic::Ordering;
 use steel_utils::Identifier;
 use steel_utils::translations::{
     COMMANDS_SETIDLETIMEOUT_SUCCESS, COMMANDS_SETIDLETIMEOUT_SUCCESS_DISABLED,
@@ -25,10 +26,11 @@ fn set_idle_timeout(
 ) -> Result<i32, CommandSyntaxError> {
     let time = context.integer("minutes")?;
 
-    {
-        let mut guard = context.source().server().player_idle_timeout.lock();
-        *guard = time;
-    }
+    context
+        .source()
+        .server()
+        .player_idle_timeout
+        .store(time, Ordering::Relaxed);
 
     if time > 0 {
         context.source().send_success(
