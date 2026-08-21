@@ -29,7 +29,6 @@ pub(super) const BASE_HORIZONTAL_FRICTION: f64 = 0.91;
 /// Vanilla behavior shared by entities that extend `Leashable`.
 ///
 /// Leashable entities can be leashed to an entity holding a lead, or a fence holding a lead.
-///
 pub trait Leashable: Entity {
     /// Returns the shared leash data (if any).
     fn leash_data(&self) -> &SyncMutex<Option<LeashData>>;
