@@ -33,12 +33,16 @@ pub trait Leashable: Entity {
     /// Returns the shared leash data (if any).
     fn leash_data(&self) -> &SyncMutex<Option<LeashData>>;
 
-    /// Returns whether this entity is leashed. Mirrors Vanilla's `Leashable.isLeashed`.
+    /// Returns whether this entity is leashed.
     fn is_leashed(&self) -> bool {
         self.leash_holder().is_some()
     }
 
-    /// Mirrors Vanilla's `Leashable.mayBeLeashed`.
+    /// Returns whether this entity can be leashed with respect to its leash state.
+    ///
+    /// In other words, this returns `false` if the entity is already leashed and `true` if not.
+    ///
+    /// See also: [`Leashable::can_be_leashed`]
     fn may_be_leashed(&self) -> bool {
         self.leash_data().lock().is_some()
     }
@@ -63,13 +67,19 @@ pub trait Leashable: Entity {
         self.remove_leash();
     }
 
-    /// Mirrors Vanilla's `Leashable.canBeLeashed`.
+    /// Returns whether this entity can be leashed with respect to the entity's type or classification.
+    ///
+    /// For example, mobs like dolphins and hoglins return `true` for this, while `villagers` return `false`.
+    ///
+    /// See also: [`Leashable::may_be_leashed`]
     fn can_be_leashed(&self) -> bool {
         // TODO: Return false for enemy mobs once hostile mob foundations exist.
         true
     }
 
-    /// Mirrors Vanilla's `Leashable.leashDistanceTo`.
+    /// Returns the distance between the bounding box's center of the entity and that of `holder`.
+    ///
+    /// Despite the same, this function does not check for any leash state.
     fn leash_distance_to(&self, holder: &dyn Entity) -> f64 {
         leash_bounding_box_center(self.as_entity_event_source())
             .distance(leash_bounding_box_center(holder))
@@ -80,25 +90,32 @@ pub trait Leashable: Entity {
         LEASH_SNAP_DISTANCE
     }
 
-    /// Returns the maximum leash distance for which a leash will stay elastic.
+    /// Returns the minimum leash distance for which a leash behaves elastically
+    /// (it pulls the leashed entity towards the holder).
     fn leash_elastic_distance(&self) -> f64 {
         LEASH_ELASTIC_DISTANCE
     }
 
+    /// Called when this entity is leashed to `holder`.
     fn when_leashed_to(&self, holder: &dyn Entity) {
         holder.notify_leash_holder(self.as_entity_event_source());
     }
 
+    /// Called every tick this entity's leash is stretched too far (this entity is too far from its holder).
     fn leash_too_far_behaviour(&self) {
         self.drop_leash();
     }
 
+    /// Called every tick this entity's leash starts acting elastic (it pulls the leashed entity towards the holder).
     fn on_elastic_leash_pull(&self) {
         self.check_fall_distance_accumulation();
     }
 
+    /// Called every tick this leash is not elastic (pulling) or snappable.
     fn close_range_leash_behaviour(&self, _holder: &dyn Entity) {}
 
+    /// Performs the calculations to pull this entity towards its leash holder and applies
+    /// velocity to it.
     fn check_elastic_interactions(&self, holder: &dyn Entity) -> bool {
         let Some(wrench) = compute_elastic_interaction(
             self.as_entity_event_source(),
@@ -125,6 +142,7 @@ pub trait Leashable: Entity {
         true
     }
 
+    /// Applies some angular momentum by the leash for rotation purposes.
     fn apply_leash_angular_momentum(&self) -> bool {
         let angular_friction = self.leash_angular_friction();
         let angular_momentum = {
@@ -140,11 +158,13 @@ pub trait Leashable: Entity {
         true
     }
 
+    /// Rotates this entity with the provided angular momentum value.
     fn rotate_by_leash_angular_momentum(&self, angular_momentum: f64) {
         let (yaw, pitch) = self.rotation();
         self.set_rotation((yaw - angular_momentum as f32, pitch));
     }
 
+    /// Returns the angular momentum experienced by this entity (if it is leashed).
     fn leash_angular_momentum(&self) -> Option<f64> {
         self.leash_data()
             .lock()
@@ -152,6 +172,9 @@ pub trait Leashable: Entity {
             .map(|leash_data| leash_data.angular_momentum)
     }
 
+    /// Returns the friction multiplier for calculating the angular momentum of a leash.
+    ///
+    /// This is multiplied with the base angular momentum to get the final angular momentum.
     fn leash_angular_friction(&self) -> f64 {
         if self.on_ground() {
             let Some(world) = self.level() else {
@@ -180,7 +203,7 @@ pub trait Leashable: Entity {
             && self.can_be_leashed()
     }
 
-    /// Mirrors Vanilla's `Leashable.setLeashedTo`.
+    /// Sets this entity to be leashed to a holder, removing the old holder's connection, if any.
     fn set_leashed_to(&self, holder: &SharedEntity) -> bool {
         if self.id() == holder.id() {
             return false;
@@ -207,7 +230,8 @@ pub trait Leashable: Entity {
         true
     }
 
-    /// Mirrors Vanilla's `Leashable.restoreLeashFromSave`.
+    /// Updates the delayed leash info to use the entity's current context to resolve
+    /// the entity's actual leash connection (whether it be an external entity or a fence knot).
     fn restore_leash_from_save(&self) {
         if let Some(attachment) = self.leash_attachment()
             && let Some(world) = self.level()
@@ -304,7 +328,7 @@ pub trait Leashable: Entity {
         }
     }
 
-    /// Removes the leash state of this entity, returning its holder before the leash's removal.
+    /// Removes the leash state of this entity, returning its holder before the leash's removal, if any.
     fn remove_leash_state(&self) -> Option<SharedEntity> {
         self.leash_data()
             .lock()
