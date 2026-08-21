@@ -15,16 +15,16 @@ use steel_utils::locks::SyncMutex;
 use steel_utils::{BlockPos, Downcast, UuidExt as _};
 use uuid::Uuid;
 
-pub(super) const LEASH_SNAP_DISTANCE: f64 = 12.0;
-pub(super) const LEASH_ELASTIC_DISTANCE: f64 = 6.0;
-pub(super) const LEASH_AXIS_SPECIFIC_ELASTICITY: DVec3 = DVec3::new(0.8, 0.2, 0.8);
-pub(super) const LEASH_SPRING_DAMPENING: f64 = 0.7;
-pub(super) const LEASH_TORSIONAL_ELASTICITY: f64 = 10.0;
-pub(super) const LEASH_STIFFNESS: f64 = 0.11;
-pub(super) const ENTITY_LEASH_ATTACHMENT_POINT: DVec3 = DVec3::new(0.0, 0.5, 0.5);
-pub(super) const LEASHER_ATTACHMENT_POINT: DVec3 = DVec3::new(0.0, 0.5, 0.0);
-pub(super) const DELAYED_LEASH_DROP_TICKS: i32 = 100;
-pub(super) const BASE_HORIZONTAL_FRICTION: f64 = 0.91;
+pub const LEASH_SNAP_DISTANCE: f64 = 12.0;
+pub const LEASH_ELASTIC_DISTANCE: f64 = 6.0;
+pub const LEASH_AXIS_SPECIFIC_ELASTICITY: DVec3 = DVec3::new(0.8, 0.2, 0.8);
+pub const LEASH_SPRING_DAMPENING: f64 = 0.7;
+pub const LEASH_TORSIONAL_ELASTICITY: f64 = 10.0;
+pub const LEASH_STIFFNESS: f64 = 0.11;
+pub const ENTITY_LEASH_ATTACHMENT_POINT: DVec3 = DVec3::new(0.0, 0.5, 0.5);
+pub const LEASHER_ATTACHMENT_POINT: DVec3 = DVec3::new(0.0, 0.5, 0.0);
+pub const DELAYED_LEASH_DROP_TICKS: i32 = 100;
+pub const BASE_HORIZONTAL_FRICTION: f64 = 0.91;
 
 /// Vanilla behavior shared by entities that extend `Leashable`.
 ///
