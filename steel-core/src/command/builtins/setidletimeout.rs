@@ -46,5 +46,5 @@ fn set_idle_timeout(
         );
     }
 
-    Ok(1)
+    Ok(time)
 }
