@@ -98,12 +98,6 @@ impl Player {
         self.broadcast_inventory_changes();
     }
 
-    /// Handles a player swing packet.
-    pub fn handle_animate(&self, packet: SSwing) {
-        self.reset_last_action_time();
-        self.swing(packet.hand, false);
-    }
-
     /// Handles a player action packet (block breaking, item dropping, etc.).
     pub fn handle_player_action(&self, packet: SPlayerAction) {
         if !self.has_client_loaded() {
