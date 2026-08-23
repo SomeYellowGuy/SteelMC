@@ -271,37 +271,42 @@ pub trait Leashable: Entity {
                 } else {
                     self.remove_leash();
                 }
+                return;
             }
-
-            let distance_to = self.leash_distance_to(holder.as_ref());
-            self.when_leashed_to(holder.as_ref());
-            let angular_momentum_before_distance_action = self.leash_angular_momentum();
-            if distance_to > self.leash_snap_distance() {
-                if let Some(world) = self.level() {
-                    world.play_sound_at(
-                        &sound_events::ITEM_LEAD_BREAK,
-                        SoundSource::Neutral,
-                        holder.position(),
-                        1.0,
-                        1.0,
-                        None,
-                    );
+            if let Some(holder) = self.leash_holder()
+                && let (Some(holder_level), Some(self_level)) = (holder.level(), self.level())
+                && holder_level.key == self_level.key
+            {
+                let distance_to = self.leash_distance_to(holder.as_ref());
+                self.when_leashed_to(holder.as_ref());
+                let angular_momentum_before_distance_action = self.leash_angular_momentum();
+                if distance_to > self.leash_snap_distance() {
+                    if let Some(world) = self.level() {
+                        world.play_sound_at(
+                            &sound_events::ITEM_LEAD_BREAK,
+                            SoundSource::Neutral,
+                            holder.position(),
+                            1.0,
+                            1.0,
+                            None,
+                        );
+                    }
+                    self.leash_too_far_behaviour();
+                } else if distance_to
+                    > self.leash_elastic_distance()
+                        - f64::from(holder.base().dimensions().width)
+                        - f64::from(self.base().dimensions().width)
+                    && self.check_elastic_interactions(holder.as_ref())
+                {
+                    self.on_elastic_leash_pull();
+                } else {
+                    self.close_range_leash_behaviour(holder.as_ref());
                 }
-                self.leash_too_far_behaviour();
-            } else if distance_to
-                > self.leash_elastic_distance()
-                    - f64::from(holder.base().dimensions().width)
-                    - f64::from(self.base().dimensions().width)
-                && self.check_elastic_interactions(holder.as_ref())
-            {
-                self.on_elastic_leash_pull();
-            } else {
-                self.close_range_leash_behaviour(holder.as_ref());
-            }
-            if !self.apply_leash_angular_momentum()
-                && let Some(angular_momentum) = angular_momentum_before_distance_action
-            {
-                self.rotate_by_leash_angular_momentum(angular_momentum);
+                if !self.apply_leash_angular_momentum()
+                    && let Some(angular_momentum) = angular_momentum_before_distance_action
+                {
+                    self.rotate_by_leash_angular_momentum(angular_momentum);
+                }
             }
         }
     }

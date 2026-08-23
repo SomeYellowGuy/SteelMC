@@ -301,13 +301,15 @@ impl Entity for LeashFenceKnotEntity {
     }
 
     fn hurt(&self, world: &World, source: &DamageSource, _amount: f32) -> bool {
-        // TODO: Check isInvulnerableToBase.
+        if self.default_is_invulnerable_to(source) {
+            return false;
+        }
 
         let causing_entity = source
             .causing_entity_id
             .and_then(|id| world.get_entity_by_id(id));
 
-        if world.get_game_rule(&MOB_GRIEFING)
+        if !world.get_game_rule(&MOB_GRIEFING)
             && let Some(causing_entity) = causing_entity
             && causing_entity.is_mob()
         {

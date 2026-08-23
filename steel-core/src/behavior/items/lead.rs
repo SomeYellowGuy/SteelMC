@@ -53,7 +53,7 @@ impl LeadItem {
         if any_leashed {
             knot.play_sound(&sound_events::ITEM_LEAD_TIED, 1.0, 1.0);
             world.game_event(
-                &vanilla_game_events::ENTITY_ACTION,
+                &vanilla_game_events::BLOCK_ATTACH,
                 pos,
                 &GameEventContext::new(Some(player), None),
             );
