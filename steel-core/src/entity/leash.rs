@@ -274,8 +274,8 @@ pub trait Leashable: Entity {
                 return;
             }
             if let Some(holder) = self.leash_holder()
-                && let (Some(holder_level), Some(self_level)) = (holder.level(), self.level())
-                && holder_level.key == self_level.key
+                && holder.level().map(|level| level.key.clone())
+                    == self.level().map(|level| level.key.clone())
             {
                 let distance_to = self.leash_distance_to(holder.as_ref());
                 self.when_leashed_to(holder.as_ref());
