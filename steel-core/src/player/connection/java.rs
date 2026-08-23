@@ -310,10 +310,7 @@ impl ScheduledPlayPacket {
             ScheduledPlayPacketKind::SetCarriedItem(packet) => {
                 player.handle_set_carried_item(packet);
             }
-            ScheduledPlayPacketKind::Swing(packet) => {
-                player.reset_last_action_time();
-                player.swing(packet.hand, false);
-            },
+            ScheduledPlayPacketKind::Swing(packet) => player.handle_animate(packet),
             ScheduledPlayPacketKind::PlayerAction(packet) => {
                 player.handle_player_action(packet);
             }

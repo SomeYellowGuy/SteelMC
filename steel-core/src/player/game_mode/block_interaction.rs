@@ -1,4 +1,5 @@
 use super::{block_breaking::BlockBreakAction, *};
+use steel_protocol::packets::game::SSwing;
 use steel_utils::translations;
 
 impl Player {
@@ -95,6 +96,12 @@ impl Player {
 
         self.send_block_updates(pos, direction);
         self.broadcast_inventory_changes();
+    }
+
+    /// Handles a player swing packet.
+    pub fn handle_animate(&self, packet: SSwing) {
+        self.reset_last_action_time();
+        self.swing(packet.hand, false);
     }
 
     /// Handles a player action packet (block breaking, item dropping, etc.).
