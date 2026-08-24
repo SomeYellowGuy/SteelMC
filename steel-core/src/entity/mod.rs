@@ -1356,6 +1356,7 @@ pub fn leashables_leashed_to_holder_in_area_near_position(
     })
 }
 
+mod block_attached_entity;
 mod leash;
 #[cfg(test)]
 mod tests;
