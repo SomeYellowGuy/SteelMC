@@ -264,6 +264,7 @@ impl ScheduledPlayPacket {
                 }
             }
             ScheduledPlayPacketKind::ChatCommand(packet) => {
+                player.reset_last_action_time();
                 if server
                     .submit_command(CommandSender::Player(Arc::clone(&player)), packet.command)
                     .is_err()
