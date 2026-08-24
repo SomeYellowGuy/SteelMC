@@ -1,5 +1,4 @@
 use super::{block_breaking::BlockBreakAction, *};
-use steel_protocol::packets::game::SSwing;
 use steel_utils::translations;
 
 impl Player {
