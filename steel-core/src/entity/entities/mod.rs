@@ -6,8 +6,9 @@ pub mod objects;
 pub use mobs::hostile::EndermiteEntity;
 pub use mobs::passive::{ChickenEntity, CowEntity, PigEntity, SheepEntity};
 pub use objects::display_ui::{
-    Alignment, BillboardConstraints, BlockDisplayEntity, Brightness, ItemDisplayContext,
-    ItemDisplayEntity, ItemFrameEntity, LeashFenceKnotEntity, TextDisplayEntity, Transformation,
+    Alignment, BillboardConstraints, BlockDisplayEntity, BlockDisplayView, Brightness,
+    ItemDisplayContext, ItemDisplayEntity, ItemDisplayView, ItemFrameEntity, LeashFenceKnotEntity,
+    TextDisplayEntity, TextDisplayView, Transformation,
 };
 pub use objects::explosives::EndCrystalEntity;
 pub use objects::items::{ExperienceOrbEntity, FallingBlockEntity, ItemEntity};
