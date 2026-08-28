@@ -5,11 +5,7 @@ pub mod objects;
 
 pub use mobs::hostile::EndermiteEntity;
 pub use mobs::passive::{ChickenEntity, CowEntity, PigEntity, SheepEntity};
-pub use objects::display_ui::{
-    Alignment, BillboardConstraints, BlockDisplayEntity, BlockDisplayView, Brightness,
-    ItemDisplayContext, ItemDisplayEntity, ItemDisplayView, ItemFrameEntity, LeashFenceKnotEntity,
-    TextDisplayEntity, TextDisplayView, Transformation,
-};
+pub use objects::display_ui::{ItemFrameEntity, LeashFenceKnotEntity};
 pub use objects::explosives::EndCrystalEntity;
 pub use objects::items::{ExperienceOrbEntity, FallingBlockEntity, ItemEntity};
 pub use objects::projectiles::{
@@ -17,4 +13,9 @@ pub use objects::projectiles::{
     ThrownEggEntity,
 };
 pub use objects::technical::{InteractionEntity, MarkerEntity};
+pub use objects::technical::{
+    Alignment, BillboardConstraints, BlockDisplayEntity, BlockDisplayView, Brightness,
+    ItemDisplayContext, ItemDisplayEntity, ItemDisplayView, TextDisplayEntity, TextDisplayView,
+    Transformation,
+};
 pub use objects::vehicles::ChestMinecartEntity;
