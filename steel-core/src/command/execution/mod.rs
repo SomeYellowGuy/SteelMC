@@ -3,6 +3,7 @@
 mod argument;
 mod biome;
 mod block;
+mod command_response_tracker;
 mod coordinates;
 mod item;
 mod item_predicate;
@@ -23,6 +24,9 @@ pub(crate) use argument::{SteelArgumentParser, SteelArgumentSuggestionContext};
 pub(crate) use biome::BiomeOrTag;
 pub(crate) use block::{BlockInput, BlockPredicate};
 pub(crate) use coordinates::Coordinates;
+pub(crate) use command_response_tracker::{
+    CommandResponseTracker, ElementType, SingleHandler, MultipleHandler, Dispatch, Messages
+};
 pub(crate) use item_predicate::ItemPredicate;
 pub(crate) use permission::PermissionGroupName;
 pub(crate) use profile::GameProfileArgument;
@@ -59,4 +63,3 @@ pub(crate) use world::WorldArgument;
 mod argument_tests;
 #[cfg(test)]
 mod tests;
-mod command_response_tracker;

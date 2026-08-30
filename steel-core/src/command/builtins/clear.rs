@@ -1,7 +1,8 @@
 //! Vanilla player inventory clearing command.
 
 use std::{slice, sync::Arc};
-
+use std::convert::Into;
+use std::string::ToString;
 use steel_registry::item_stack::ItemStack;
 use steel_utils::{Identifier, translations};
 use text_components::TextComponent;
@@ -15,6 +16,22 @@ use super::super::{
     registration::CommandRegistration,
 };
 use crate::{entity::Entity as _, player::Player};
+use crate::command::execution::Messages;
+
+const RESPONSE_TEST: Messages<&Arc<Player>, ()> = Messages::new(
+    |player, total_value, ()| translations::COMMANDS_CLEAR_TEST_SINGLE
+        .message([
+            total_value.to_string(),
+            player.plain_text_name(),
+        ])
+        .component().into(),
+    |player_count, total_value, ()| translations::COMMANDS_CLEAR_TEST_MULTIPLE
+        .message([
+            total_value.to_string(),
+            player_count.to_string(),
+        ])
+        .component().into()
+);
 
 pub(super) fn registration() -> CommandRegistration<CommandSource> {
     CommandRegistration::new(Identifier::vanilla_static("clear"), |_| command())

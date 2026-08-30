@@ -83,7 +83,19 @@ impl<'a, E> CommandResponseTracker<'a, E> {
         }
     }
 
-    pub fn send_feedback<Args: Clone>(
+    pub fn send_feedback<>(
+        &self,
+        context: &SteelCommandContext<CommandSource>,
+        broadcast: bool,
+        element_type: ElementType,
+        messages: Messages<&'a E, ()>,
+    ) -> Result<i32, CommandSyntaxError> {
+        messages.throw_if_zero(self.element_count(element_type), ())?;
+        context.source().send_success(&*self.dispatch(element_type, messages.on_success, ()), broadcast);
+        Ok(self.total_value)
+    }
+
+    pub fn send_feedback_with_args<Args: Clone>(
         &self,
         context: &SteelCommandContext<CommandSource>,
         broadcast: bool,
@@ -119,7 +131,7 @@ pub struct Messages<E, Args> {
 
 impl<E, Args> Messages<E, Args> {
 
-    pub fn new(
+    const fn with_error_handler_option(
         on_zero: Option<ErrorHandler<Args>>,
         on_single: SingleHandler<Box<TextComponent>, E, Args>,
         on_multiple: MultipleHandler<Box<TextComponent>, Args>
@@ -132,11 +144,23 @@ impl<E, Args> Messages<E, Args> {
         }
     }
 
-    pub fn with_no_error_handler(
+    pub const fn with_error_handler(
+        on_zero: ErrorHandler<Args>,
         on_single: SingleHandler<Box<TextComponent>, E, Args>,
         on_multiple: MultipleHandler<Box<TextComponent>, Args>
     ) -> Self {
-        Self::new(None, on_single, on_multiple)
+        Self::with_error_handler_option(
+            Some(on_zero),
+            on_single,
+            on_multiple
+        )
+    }
+
+    pub const fn new(
+        on_single: SingleHandler<Box<TextComponent>, E, Args>,
+        on_multiple: MultipleHandler<Box<TextComponent>, Args>
+    ) -> Self {
+        Self::with_error_handler_option(None, on_single, on_multiple)
     }
 
     pub fn throw_if_zero(&self, value: i32, args: Args) -> Result<(), CommandSyntaxError> {
