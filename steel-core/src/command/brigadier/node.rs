@@ -1,12 +1,15 @@
 //! Command graph nodes and registration errors.
 
+use super::{
+    ArgumentSuggestionContext, BrigadierRuntime, CommandArgumentParser, CommandRuntime,
+    SuggestionsBuilder,
+};
+use crate::command::brigadier::suggestion::SuggestionProvider;
 use std::{fmt, sync::Arc};
-
 use thiserror::Error;
 
-use super::{BrigadierRuntime, CommandRuntime};
-
 type RequirementPredicate<S> = Arc<dyn Fn(&S) -> bool + Send + Sync>;
+type SyncSuggestionProvider<S, A> = Arc<dyn SuggestionProvider<S, A> + Send + Sync>;
 
 /// Identifies a node in one command dispatcher.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -219,18 +222,17 @@ where
     }
 }
 
-#[derive(Clone)]
-pub(super) enum CommandNodeData<A> {
+pub(super) enum CommandNodeData<S, A: CommandArgumentParser<S>> {
     Root,
     Literal(Box<str>),
-    Argument { name: Box<str>, argument_type: A },
+    Argument(Box<str>, ArgumentData<S, A>),
 }
 
-impl<A> CommandNodeData<A> {
+impl<S, A: CommandArgumentParser<S>> CommandNodeData<S, A> {
     pub(super) fn name(&self) -> &str {
         match self {
             Self::Root => "",
-            Self::Literal(name) | Self::Argument { name, .. } => name,
+            Self::Literal(name) | Self::Argument(name, _) => name,
         }
     }
 
@@ -243,7 +245,7 @@ impl<A> CommandNodeData<A> {
     }
 }
 
-impl<A> CommandNodeData<A>
+impl<S, A: CommandArgumentParser<S>> CommandNodeData<S, A>
 where
     A: PartialEq,
 {
@@ -252,18 +254,22 @@ where
         match (self, other) {
             (Self::Literal(first), Self::Literal(second)) if first == second => None,
             (
-                Self::Argument {
-                    name: first_name,
-                    argument_type: first_type,
-                },
-                Self::Argument {
-                    name: second_name,
-                    argument_type: second_type,
-                },
+                Self::Argument(
+                    first_name,
+                    ArgumentData {
+                        argument_type: first_type,
+                        ..
+                    },
+                ),
+                Self::Argument(
+                    second_name,
+                    ArgumentData {
+                        argument_type: second_type,
+                        ..
+                    },
+                ),
             ) if first_name == second_name && first_type == second_type => None,
-            (Self::Argument { name: first, .. }, Self::Argument { name: second, .. })
-                if first == second =>
-            {
+            (Self::Argument(first, _), Self::Argument(second, _)) if first == second => {
                 Some(RegistrationErrorKind::ArgumentTypeCollision { name })
             }
             _ => Some(RegistrationErrorKind::NodeKindCollision {
@@ -275,12 +281,69 @@ where
     }
 }
 
+impl<S, A: CommandArgumentParser<S>> Clone for CommandNodeData<S, A>
+where
+    A: Clone,
+{
+    fn clone(&self) -> Self {
+        match self {
+            Self::Root => Self::Root,
+            Self::Literal(name) => Self::Literal(name.clone()),
+            Self::Argument(name, argument_data) => {
+                Self::Argument(name.clone(), argument_data.clone())
+            }
+        }
+    }
+}
+
+pub(super) struct ArgumentData<S, A> {
+    pub(super) argument_type: A,
+    pub(super) custom_suggestions: Option<SyncSuggestionProvider<S, A>>,
+}
+
+impl<S, A> ArgumentData<S, A> {
+    pub(crate) fn new(argument_type: A) -> Self {
+        Self {
+            argument_type,
+            custom_suggestions: None,
+        }
+    }
+}
+
+impl<S, A> ArgumentData<S, A> {
+    pub(crate) fn list_suggestions(
+        &self,
+        context: &ArgumentSuggestionContext<'_, S, <A as CommandArgumentParser<S>>::Value>,
+        builder: &mut SuggestionsBuilder<'_>,
+    ) where
+        A: CommandArgumentParser<S>,
+    {
+        if let Some(suggestions) = self.custom_suggestions.as_ref() {
+            suggestions.list_suggestions(context, builder);
+        } else {
+            self.argument_type.list_suggestions(context, builder);
+        }
+    }
+}
+
+impl<S, A: CommandArgumentParser<S>> Clone for ArgumentData<S, A>
+where
+    A: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            argument_type: self.argument_type.clone(),
+            custom_suggestions: self.custom_suggestions.clone(),
+        }
+    }
+}
+
 /// One node stored in the dispatcher's arena.
 pub(crate) struct CommandNode<S, R = BrigadierRuntime>
 where
     R: CommandRuntime<S>,
 {
-    pub(super) data: CommandNodeData<R::Argument>,
+    pub(super) data: CommandNodeData<S, R::Argument>,
     pub(super) children: Vec<NodeId>,
     pub(super) executor: Option<Arc<R::Executor>>,
     pub(super) requirement: CommandRequirement<S>,
@@ -354,7 +417,7 @@ where
     /// Returns this node's argument parser when it is an argument node.
     pub(crate) const fn argument_type(&self) -> Option<&R::Argument> {
         match &self.data {
-            CommandNodeData::Argument { argument_type, .. } => Some(argument_type),
+            CommandNodeData::Argument(_, argument_data) => Some(&argument_data.argument_type),
             CommandNodeData::Root | CommandNodeData::Literal(_) => None,
         }
     }
@@ -408,7 +471,7 @@ pub(super) struct UnregisteredCommandNode<S, R = BrigadierRuntime>
 where
     R: CommandRuntime<S>,
 {
-    pub(super) data: CommandNodeData<R::Argument>,
+    pub(super) data: CommandNodeData<S, R::Argument>,
     pub(super) children: Vec<Self>,
     pub(super) executor: Option<Arc<R::Executor>>,
     pub(super) requirement: CommandRequirement<S>,

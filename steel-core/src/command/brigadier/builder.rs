@@ -1,7 +1,5 @@
 //! Command node builders.
 
-use std::sync::Arc;
-
 use super::{
     ArgumentType, BrigadierRuntime, CommandContext, CommandRequirement, CommandRuntime,
     CommandSyntaxError, NodeId, RegistrationError, RegistrationErrorKind,
@@ -11,13 +9,15 @@ use super::{
     },
     runtime::{BrigadierExecutor, BrigadierModifier},
 };
+use crate::command::brigadier::node::ArgumentData;
+use std::sync::Arc;
 
 /// Builds one literal or argument command node and its descendants.
 pub(crate) struct CommandNodeBuilder<S, R = BrigadierRuntime>
 where
     R: CommandRuntime<S>,
 {
-    data: CommandNodeData<R::Argument>,
+    data: CommandNodeData<S, R::Argument>,
     children: Vec<Self>,
     executor: Option<Arc<R::Executor>>,
     requirement: CommandRequirement<S>,
@@ -114,10 +114,7 @@ where
     /// Creates an argument for this runtime model.
     pub(crate) fn argument(name: impl Into<Box<str>>, argument_type: R::Argument) -> Self {
         Self {
-            data: CommandNodeData::Argument {
-                name: name.into(),
-                argument_type,
-            },
+            data: CommandNodeData::Argument(name.into(), ArgumentData::new(argument_type)),
             children: Vec::new(),
             executor: None,
             requirement: CommandRequirement::allow_all(),

@@ -2,10 +2,9 @@
 
 use std::{cmp::Ordering, ops::Range};
 
+use super::{ArgumentSuggestionContext, CommandArgumentParser, StringRange};
 use text_components::TextComponent;
 use thiserror::Error;
-
-use super::StringRange;
 
 /// A suggestion range could not be mapped to valid UTF-8 boundaries.
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
@@ -318,5 +317,27 @@ impl<'input> SuggestionsBuilder<'input> {
 
     fn range(&self) -> StringRange {
         StringRange::between(self.start, self.input.encode_utf16().count())
+    }
+}
+
+/// A trait for something that provides suggestions, given a builder.
+pub(crate) trait SuggestionProvider<S, A: CommandArgumentParser<S>> {
+    /// Adds context-aware completion suggestions.
+    fn list_suggestions(
+        &self,
+        context: &ArgumentSuggestionContext<'_, S, A::Value>,
+        builder: &mut SuggestionsBuilder<'_>,
+    );
+}
+
+impl<S, A: CommandArgumentParser<S>> SuggestionProvider<S, A>
+    for fn(&ArgumentSuggestionContext<'_, S, A::Value>, &mut SuggestionsBuilder<'_>)
+{
+    fn list_suggestions(
+        &self,
+        context: &ArgumentSuggestionContext<'_, S, A::Value>,
+        builder: &mut SuggestionsBuilder<'_>,
+    ) {
+        self(context, builder);
     }
 }
