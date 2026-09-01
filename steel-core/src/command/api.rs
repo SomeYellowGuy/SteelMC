@@ -173,6 +173,8 @@ impl CommandNode {
         }
     }
 
+    /// TODO: Add argument_with_suggestions
+
     /// Adds a child while preserving declaration order.
     #[must_use]
     pub fn then(mut self, child: Self) -> Self {

@@ -2,7 +2,7 @@
 
 use super::{
     ArgumentType, BrigadierRuntime, CommandContext, CommandRequirement, CommandRuntime,
-    CommandSyntaxError, NodeId, RegistrationError, RegistrationErrorKind,
+    CommandSyntaxError, NodeId, RegistrationError, RegistrationErrorKind, SuggestionProvider,
     node::{
         CommandNodeData, CommandRedirect, CommandRedirectTarget, UnregisteredCommandNode,
         merge_or_push,
@@ -115,6 +115,25 @@ where
     pub(crate) fn argument(name: impl Into<Box<str>>, argument_type: R::Argument) -> Self {
         Self {
             data: CommandNodeData::Argument(name.into(), ArgumentData::new(argument_type)),
+            children: Vec::new(),
+            executor: None,
+            requirement: CommandRequirement::allow_all(),
+            execution_requirement: CommandRequirement::allow_all(),
+            redirect: None,
+        }
+    }
+
+    /// Creates an argument for this runtime model that has a custom [`SuggestionProvider`].
+    pub(crate) fn argument_with_suggestions(
+        name: impl Into<Box<str>>,
+        argument_type: R::Argument,
+        custom_suggestions: impl SuggestionProvider<S, R::Argument> + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            data: CommandNodeData::Argument(
+                name.into(),
+                ArgumentData::with_suggestions(argument_type, Arc::new(custom_suggestions)),
+            ),
             children: Vec::new(),
             executor: None,
             requirement: CommandRequirement::allow_all(),
