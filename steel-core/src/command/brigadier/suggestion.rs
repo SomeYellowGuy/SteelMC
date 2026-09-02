@@ -1,8 +1,7 @@
 //! Command completion suggestions and UTF-16 replacement ranges.
 
-use std::{cmp::Ordering, ops::Range};
-
 use super::{ArgumentSuggestionContext, CommandArgumentParser, StringRange};
+use std::{cmp::Ordering, ops::Range};
 use text_components::TextComponent;
 use thiserror::Error;
 
@@ -228,7 +227,7 @@ impl Suggestions {
 }
 
 /// Accumulates suggestions for one input suffix.
-pub(crate) struct SuggestionsBuilder<'input> {
+pub struct SuggestionsBuilder<'input> {
     input: &'input str,
     start: usize,
     byte_start: usize,
@@ -321,7 +320,10 @@ impl<'input> SuggestionsBuilder<'input> {
 }
 
 /// A trait for something that provides suggestions, given a builder.
-pub(crate) trait SuggestionProvider<S, A: CommandArgumentParser<S>> {
+///
+/// Function pointers that have the same function signature as that of this
+/// trait also implement this trait.
+pub(crate) trait SuggestionProvider<S, A: CommandArgumentParser<S>>: Send + Sync {
     /// Adds context-aware completion suggestions.
     fn list_suggestions(
         &self,
@@ -330,8 +332,12 @@ pub(crate) trait SuggestionProvider<S, A: CommandArgumentParser<S>> {
     );
 }
 
-impl<S, A: CommandArgumentParser<S>> SuggestionProvider<S, A>
-    for fn(&ArgumentSuggestionContext<'_, S, A::Value>, &mut SuggestionsBuilder<'_>)
+impl<S, A, F> SuggestionProvider<S, A> for F
+where
+    A: CommandArgumentParser<S>,
+    F: for<'a, 'b> Fn(&ArgumentSuggestionContext<'a, S, A::Value>, &mut SuggestionsBuilder<'b>)
+        + Send
+        + Sync,
 {
     fn list_suggestions(
         &self,

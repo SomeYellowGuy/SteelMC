@@ -2,14 +2,13 @@
 
 use super::{
     ArgumentSuggestionContext, BrigadierRuntime, CommandArgumentParser, CommandRuntime,
-    SuggestionsBuilder,
+    SuggestionProvider, SuggestionsBuilder,
 };
-use crate::command::brigadier::suggestion::SuggestionProvider;
 use std::{fmt, sync::Arc};
 use thiserror::Error;
 
 type RequirementPredicate<S> = Arc<dyn Fn(&S) -> bool + Send + Sync>;
-type SyncSuggestionProvider<S, A> = Arc<dyn SuggestionProvider<S, A> + Send + Sync>;
+type SyncSuggestionProvider<S, A> = Arc<dyn SuggestionProvider<S, A>>;
 
 /// Identifies a node in one command dispatcher.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -296,20 +295,24 @@ where
     }
 }
 
-pub(super) struct ArgumentData<S, A> {
+pub(crate) struct ArgumentData<S, A> {
     pub(super) argument_type: A,
     pub(super) custom_suggestions: Option<SyncSuggestionProvider<S, A>>,
 }
 
 impl<S, A> ArgumentData<S, A> {
-    pub(crate) fn new(argument_type: A) -> Self {
+    pub(crate) const fn new(argument_type: A) -> Self {
         Self {
             argument_type,
             custom_suggestions: None,
         }
     }
 
-    pub(crate) fn with_suggestions(
+    pub(crate) const fn argument_type(&self) -> &A {
+        &self.argument_type
+    }
+
+    pub(crate) const fn with_suggestions(
         argument_type: A,
         custom_suggestions: SyncSuggestionProvider<S, A>,
     ) -> Self {
@@ -333,6 +336,10 @@ impl<S, A> ArgumentData<S, A> {
         } else {
             self.argument_type.list_suggestions(context, builder);
         }
+    }
+
+    pub(crate) fn has_custom_suggestions(&self) -> bool {
+        self.custom_suggestions.is_some()
     }
 }
 
@@ -424,10 +431,18 @@ where
         self.data.kind()
     }
 
+    /// Returns this node's argument data when it is an argument node.
+    pub(crate) const fn argument_data(&self) -> Option<&ArgumentData<S, R::Argument>> {
+        match &self.data {
+            CommandNodeData::Argument(_, argument_data) => Some(argument_data),
+            CommandNodeData::Root | CommandNodeData::Literal(_) => None,
+        }
+    }
+
     /// Returns this node's argument parser when it is an argument node.
     pub(crate) const fn argument_type(&self) -> Option<&R::Argument> {
         match &self.data {
-            CommandNodeData::Argument(_, argument_data) => Some(&argument_data.argument_type),
+            CommandNodeData::Argument(_, argument_data) => Some(argument_data.argument_type()),
             CommandNodeData::Root | CommandNodeData::Literal(_) => None,
         }
     }

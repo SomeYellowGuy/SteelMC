@@ -1,6 +1,3 @@
-use steel_utils::{Identifier, translations};
-use text_components::TextComponent;
-
 use super::super::{
     brigadier::{ArgumentType, CommandNodeBuilder, CommandSyntaxError},
     execution::{
@@ -9,6 +6,10 @@ use super::super::{
     },
     registration::CommandRegistration,
 };
+use crate::command::execution::FixedSuggestionProvider;
+use crate::command::execution::argument_with_suggestions;
+use steel_utils::{Identifier, translations};
+use text_components::TextComponent;
 
 pub(super) fn registration() -> CommandRegistration<CommandSource> {
     CommandRegistration::new(Identifier::vanilla_static("tick"), |_| command())
@@ -31,7 +32,12 @@ fn command() -> CommandNodeBuilder<CommandSource, SteelCommandRuntime> {
                 .executes(|context| step(context, 1))
                 .then(literal("stop").executes(stop_step))
                 .then(
-                    argument("time", SteelArgumentType::time(1)).executes(|context| {
+                    argument_with_suggestions(
+                        "time",
+                        SteelArgumentType::time(1),
+                        FixedSuggestionProvider::new(&["1t", "1s"]),
+                    )
+                    .executes(|context| {
                         let ticks = context.time("time")?;
                         step(context, ticks)
                     }),
@@ -41,7 +47,12 @@ fn command() -> CommandNodeBuilder<CommandSource, SteelCommandRuntime> {
             literal("sprint")
                 .then(literal("stop").executes(stop_sprint))
                 .then(
-                    argument("time", SteelArgumentType::time(1)).executes(|context| {
+                    argument_with_suggestions(
+                        "time",
+                        SteelArgumentType::time(1),
+                        FixedSuggestionProvider::new(&["60s", "1d", "3d"]),
+                    )
+                    .executes(|context| {
                         let ticks = context.time("time")?;
                         sprint(context, ticks)
                     }),

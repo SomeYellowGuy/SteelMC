@@ -127,12 +127,21 @@ where
     pub(crate) fn argument_with_suggestions(
         name: impl Into<Box<str>>,
         argument_type: R::Argument,
-        custom_suggestions: impl SuggestionProvider<S, R::Argument> + Send + Sync + 'static,
+        custom_suggestions: impl SuggestionProvider<S, R::Argument> + 'static,
+    ) -> Self {
+        Self::argument_with_suggestions_arc(name, argument_type, Arc::new(custom_suggestions))
+    }
+
+    /// Creates an argument for this runtime model that has a custom [`SuggestionProvider`], wrapped in an [`Arc`].
+    pub(crate) fn argument_with_suggestions_arc(
+        name: impl Into<Box<str>>,
+        argument_type: R::Argument,
+        custom_suggestions: Arc<impl SuggestionProvider<S, R::Argument> + 'static>,
     ) -> Self {
         Self {
             data: CommandNodeData::Argument(
                 name.into(),
-                ArgumentData::with_suggestions(argument_type, Arc::new(custom_suggestions)),
+                ArgumentData::with_suggestions(argument_type, custom_suggestions),
             ),
             children: Vec::new(),
             executor: None,

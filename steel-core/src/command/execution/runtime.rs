@@ -133,11 +133,12 @@ where
     CommandNodeBuilder::argument(name, argument_type.into())
 }
 
-/// Creates an argument backed by Steel's runtime model.
+/// Creates an argument backed by Steel's runtime model. This argument will override its argument type's
+/// suggestions to have its own.
 pub(crate) fn argument_with_suggestions<S>(
     name: impl Into<Box<str>>,
     argument_type: impl Into<SteelArgumentType>,
-    custom_suggestions: impl SuggestionProvider<S, SteelArgumentType> + Sync + Send + 'static,
+    custom_suggestions: impl SuggestionProvider<S, SteelArgumentType> + 'static,
 ) -> CommandNodeBuilder<S, SteelCommandRuntime>
 where
     S: ExecutionCommandSource,

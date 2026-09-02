@@ -11,8 +11,9 @@ use text_components::TextComponent;
 
 use super::{
     brigadier::{
-        ArgumentType, CommandNodeBuilder, CommandRequirement, CommandSyntaxError,
-        CommandSyntaxErrorKind, ReaderCursor, StringReader, SuggestionsBuilder,
+        ArgumentType, CommandArgumentParser as InternalCommandArgumentParser, CommandNodeBuilder,
+        CommandRequirement, CommandSyntaxError, CommandSyntaxErrorKind, ReaderCursor, StringReader,
+        SuggestionProvider as InternalSuggestionProvider, SuggestionsBuilder,
     },
     execution::{
         CommandArgumentSource, CommandPermissionSource, CommandResultSuspension,
@@ -26,6 +27,7 @@ use super::{
         CommandRegistrationError as InternalCommandRegistrationError,
     },
 };
+use crate::command::brigadier::ArgumentSuggestionContext;
 use crate::{
     entity::SharedEntity,
     permission::{PermissionExpr, PermissionState},
@@ -173,7 +175,21 @@ impl CommandNode {
         }
     }
 
-    /// TODO: Add argument_with_suggestions
+    /// Creates a typed argument node.
+    #[must_use]
+    pub fn argument_with_suggestions(
+        name: impl Into<Box<str>>,
+        argument: CommandArgument,
+        custom_suggestions: &'static (impl SuggestionProvider + 'static),
+    ) -> Self {
+        Self {
+            inner: CommandNodeBuilder::argument_with_suggestions_arc(
+                name,
+                argument.inner,
+                Arc::new(SuggestionProviderWrapper(custom_suggestions)),
+            ),
+        }
+    }
 
     /// Adds a child while preserving declaration order.
     #[must_use]
@@ -242,6 +258,37 @@ pub fn literal(name: impl Into<Box<str>>) -> CommandNode {
 #[must_use]
 pub fn argument(name: impl Into<Box<str>>, argument: CommandArgument) -> CommandNode {
     CommandNode::argument(name, argument)
+}
+
+pub trait SuggestionProvider: Send + Sync {
+    /// Adds context-aware completion suggestions.
+    fn list_suggestions(
+        &self,
+        context: &CommandSuggestionContext,
+        builder: &mut SuggestionsBuilder<'_>,
+    );
+}
+
+struct SuggestionProviderWrapper(&'static (dyn SuggestionProvider + 'static));
+
+impl InternalSuggestionProvider<InternalCommandSource, SteelArgumentType>
+    for SuggestionProviderWrapper
+{
+    fn list_suggestions(
+        &self,
+        context: &ArgumentSuggestionContext<
+            '_,
+            InternalCommandSource,
+            <SteelArgumentType as InternalCommandArgumentParser<InternalCommandSource>>::Value,
+        >,
+        builder: &mut SuggestionsBuilder<'_>,
+    ) {
+        SuggestionProvider::list_suggestions(
+            self.0,
+            &CommandSuggestionContext { inner: context },
+            builder,
+        );
+    }
 }
 
 /// A parsed command invocation exposed to an extension executor.
