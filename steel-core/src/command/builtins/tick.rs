@@ -1,8 +1,7 @@
 use super::super::{
     brigadier::{ArgumentType, CommandNodeBuilder, CommandSyntaxError},
     execution::{
-        CommandSource, SteelArgumentType, SteelCommandContext, SteelCommandRuntime, argument,
-        literal,
+        CommandSource, SteelArgumentType, SteelCommandContext, SteelCommandRuntime, literal,
     },
     registration::CommandRegistration,
 };
@@ -20,12 +19,20 @@ pub(super) fn registration() -> CommandRegistration<CommandSource> {
         .subcommand_permission(["freeze"])
 }
 
+pub const DEFAULT_TICK_RATE: &str = "20";
+
 fn command() -> CommandNodeBuilder<CommandSource, SteelCommandRuntime> {
     literal("tick")
         .then(literal("query").executes(query_tick))
         .then(
-            literal("rate")
-                .then(argument("rate", ArgumentType::float(1.0, 10_000.0)).executes(set_tick_rate)),
+            literal("rate").then(
+                argument_with_suggestions(
+                    "rate",
+                    ArgumentType::float(1.0, 10_000.0),
+                    FixedSuggestionProvider::new(&[DEFAULT_TICK_RATE]),
+                )
+                .executes(set_tick_rate),
+            ),
         )
         .then(
             literal("step")
