@@ -263,10 +263,10 @@ pub fn argument(name: impl Into<Box<str>>, argument: CommandArgument) -> Command
 /// A provider to add suggestions to a builder. This is useful to override the suggestions
 /// of a specific argument in a command to follow this provider.
 ///
-/// Function pointers that have the same function signature as that of
-/// `list_suggestions` in this trait also implement this trait.
+/// Functions that have the same function signature as that of
+/// [`SuggestionProvider::list_suggestions`] also implement this trait.
 pub trait SuggestionProvider: Send + Sync {
-    /// Adds suggestions to the builder.
+    /// Adds suggestions, according to this provider, to the given builder.
     fn list_suggestions(
         &self,
         context: &CommandSuggestionContext,
