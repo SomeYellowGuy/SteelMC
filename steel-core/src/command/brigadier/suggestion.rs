@@ -319,10 +319,10 @@ impl<'input> SuggestionsBuilder<'input> {
     }
 }
 
-/// A trait for something that provides suggestions, given a builder.
+/// A provider to add suggestions to a builder.
 ///
-/// Function pointers that have the same function signature as that of this
-/// trait also implement this trait.
+/// Function pointers that have the same function signature as that of
+/// `list_suggestions` in this trait also implement this trait.
 pub(crate) trait SuggestionProvider<S, A: CommandArgumentParser<S>>: Send + Sync {
     /// Adds context-aware completion suggestions.
     fn list_suggestions(
@@ -332,6 +332,8 @@ pub(crate) trait SuggestionProvider<S, A: CommandArgumentParser<S>>: Send + Sync
     );
 }
 
+// Blanket implementation for functions having a specific trait signature
+// to implement SuggestionProvider.
 impl<S, A, F> SuggestionProvider<S, A> for F
 where
     A: CommandArgumentParser<S>,

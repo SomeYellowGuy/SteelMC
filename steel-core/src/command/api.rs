@@ -260,13 +260,33 @@ pub fn argument(name: impl Into<Box<str>>, argument: CommandArgument) -> Command
     CommandNode::argument(name, argument)
 }
 
+/// A provider to add suggestions to a builder. This is useful to override the suggestions
+/// of a specific argument in a command to follow this provider.
+///
+/// Function pointers that have the same function signature as that of
+/// `list_suggestions` in this trait also implement this trait.
 pub trait SuggestionProvider: Send + Sync {
-    /// Adds context-aware completion suggestions.
+    /// Adds suggestions to the builder.
     fn list_suggestions(
         &self,
         context: &CommandSuggestionContext,
         builder: &mut SuggestionsBuilder<'_>,
     );
+}
+
+// Blanket implementation for functions having a specific trait signature
+// to implement SuggestionProvider.
+impl<F> SuggestionProvider for F
+where
+    F: for<'a> Fn(&CommandSuggestionContext, &mut SuggestionsBuilder<'a>) + Send + Sync,
+{
+    fn list_suggestions(
+        &self,
+        context: &CommandSuggestionContext,
+        builder: &mut SuggestionsBuilder<'_>,
+    ) {
+        self(context, builder);
+    }
 }
 
 struct SuggestionProviderWrapper(&'static (dyn SuggestionProvider + 'static));
