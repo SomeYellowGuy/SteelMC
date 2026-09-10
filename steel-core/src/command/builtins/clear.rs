@@ -16,7 +16,7 @@ use super::super::{
     registration::CommandRegistration,
 };
 use crate::{entity::Entity as _, player::Player};
-use crate::command::execution::Messages;
+use crate::command::execution::{CommandResponseTracker, Dispatch, ElementType, Messages};
 
 const RESPONSE_TEST: Messages<&Arc<Player>, ()> = Messages::new(
     |player, total_value, ()| translations::COMMANDS_CLEAR_TEST_SINGLE
@@ -26,6 +26,21 @@ const RESPONSE_TEST: Messages<&Arc<Player>, ()> = Messages::new(
         ])
         .component().into(),
     |player_count, total_value, ()| translations::COMMANDS_CLEAR_TEST_MULTIPLE
+        .message([
+            total_value.to_string(),
+            player_count.to_string(),
+        ])
+        .component().into()
+);
+
+const RESPONSE_CLEAR: Messages<&Arc<Player>, ()> = Messages::new(
+    |player, total_value, ()| translations::COMMANDS_CLEAR_SUCCESS_SINGLE
+        .message([
+            total_value.to_string(),
+            player.plain_text_name(),
+        ])
+        .component().into(),
+    |player_count, total_value, ()| translations::COMMANDS_CLEAR_SUCCESS_MULTIPLE
         .message([
             total_value.to_string(),
             player_count.to_string(),
@@ -99,9 +114,12 @@ fn clear_players(
     max_count: i32,
 ) -> Result<i32, CommandSyntaxError> {
     let mut count = 0;
+    let counting_only = max_count == 0;
+    let mut tracker = CommandResponseTracker::new();
     for target in targets {
-        count += target.clear_or_count_matching_items(predicate, max_count);
+        tracker.track_with_value(&target, target.clear_or_count_matching_items(predicate, max_count));
     }
+    Dispatch
 
     if count == 0 {
         let message = if let [target] = targets {
@@ -117,38 +135,7 @@ fn clear_players(
     }
 
     let count_component = TextComponent::plain(count.to_string());
-    let message = if max_count == 0 {
-        if let [target] = targets {
-            translations::COMMANDS_CLEAR_TEST_SINGLE
-                .message([
-                    count_component,
-                    TextComponent::plain(target.plain_text_name()),
-                ])
-                .component()
-        } else {
-            translations::COMMANDS_CLEAR_TEST_MULTIPLE
-                .message([
-                    count_component,
-                    TextComponent::plain(targets.len().to_string()),
-                ])
-                .component()
-        }
-    } else if let [target] = targets {
-        translations::COMMANDS_CLEAR_SUCCESS_SINGLE
-            .message([
-                count_component,
-                TextComponent::plain(target.plain_text_name()),
-            ])
-            .component()
-    } else {
-        translations::COMMANDS_CLEAR_SUCCESS_MULTIPLE
-            .message([
-                count_component,
-                TextComponent::plain(targets.len().to_string()),
-            ])
-            .component()
-    };
-    context.source().send_success(&message, true);
+
     Ok(count)
 }
 

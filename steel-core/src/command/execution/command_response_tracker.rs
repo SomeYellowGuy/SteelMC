@@ -124,6 +124,12 @@ pub struct Dispatch<R, E, Args> {
     on_multiple: MultipleHandler<R, Args>,
 }
 
+impl<R, E, Args> Dispatch<R, E, Args> {
+    pub const fn new(on_single: SingleHandler<R, E, Args>, on_multiple: MultipleHandler<R, Args>) -> Dispatch<R, E, Args> {
+        Self { on_single, on_multiple }
+    }
+}
+
 pub struct Messages<E, Args> {
     on_zero: Option<ErrorHandler<Args>>,
     on_success: Dispatch<Box<TextComponent>, E, Args>
@@ -138,9 +144,7 @@ impl<E, Args> Messages<E, Args> {
     ) -> Self {
         Self {
             on_zero,
-            on_success: Dispatch {
-                on_single, on_multiple
-            }
+            on_success: Dispatch::new(on_single, on_multiple)
         }
     }
 
