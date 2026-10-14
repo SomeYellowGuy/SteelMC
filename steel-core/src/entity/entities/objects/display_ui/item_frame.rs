@@ -1,6 +1,6 @@
 //! Minimal persistent item-frame entity used by structure generation.
 
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 use glam::DVec3;
 use simdnbt::borrow::NbtCompound as BorrowedNbtCompoundView;
@@ -19,7 +19,7 @@ use crate::entity::block_attached_entity::{BlockAttachedEntity, BlockAttachedEnt
 use crate::entity::damage::DamageSource;
 use crate::entity::{
     Entity, EntityBase, EntityBaseLoad, EntityBaseState, EntityMoveError, EntitySyncedData,
-    ItemFrame,
+    ItemFrame, SharedEntity,
 };
 use crate::physics::{MoveResult, MoverType};
 use crate::world::World;
@@ -262,7 +262,7 @@ impl Entity for ItemFrameEntity {
         Some(&self.entity_data)
     }
 
-    fn tick(&self) {
+    fn tick(self: Arc<Self>) {
         self.tick_block_attached_entity();
     }
 
@@ -274,7 +274,7 @@ impl Entity for ItemFrameEntity {
         self.hurt_block_attached_entity(world, source, amount)
     }
 
-    fn skip_attack_interaction(&self, source: &dyn Entity) -> bool {
+    fn skip_attack_interaction(&self, source: &SharedEntity) -> bool {
         self.skip_attack_interaction_block_attached_entity(source)
     }
 
@@ -282,7 +282,7 @@ impl Entity for ItemFrameEntity {
         self.push_impulse_block_attached_entity(impulse);
     }
 
-    fn move_entity(&self, mover_type: MoverType, delta: DVec3) -> Option<MoveResult> {
+    fn move_entity(self: Arc<Self>, mover_type: MoverType, delta: DVec3) -> Option<MoveResult> {
         self.move_entity_block_attached_entity(mover_type, delta)
     }
 

@@ -247,7 +247,7 @@ impl Entity for LeashFenceKnotEntity {
         InteractionResult::Success
     }
 
-    fn tick(&self) {
+    fn tick(self: Arc<Self>) {
         self.tick_block_attached_entity();
     }
 
@@ -259,7 +259,7 @@ impl Entity for LeashFenceKnotEntity {
         self.hurt_block_attached_entity(world, source, amount)
     }
 
-    fn skip_attack_interaction(&self, source: &dyn Entity) -> bool {
+    fn skip_attack_interaction(&self, source: &SharedEntity) -> bool {
         self.skip_attack_interaction_block_attached_entity(source)
     }
 
@@ -271,7 +271,7 @@ impl Entity for LeashFenceKnotEntity {
         self.push_impulse_block_attached_entity(impulse);
     }
 
-    fn move_entity(&self, mover_type: MoverType, delta: DVec3) -> Option<MoveResult> {
+    fn move_entity(self: Arc<Self>, mover_type: MoverType, delta: DVec3) -> Option<MoveResult> {
         self.move_entity_block_attached_entity(mover_type, delta)
     }
 

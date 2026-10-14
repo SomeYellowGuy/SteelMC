@@ -376,7 +376,7 @@ pub trait Entity: EntityEventSource + ErasedType + Send + Sync + 'static {
     }
 
     /// Returns whether this entity handles and consumes an attack before normal damage.
-    fn skip_attack_interaction(&self, _source: &dyn Entity) -> bool {
+    fn skip_attack_interaction(&self, _source: &SharedEntity) -> bool {
         false
     }
 

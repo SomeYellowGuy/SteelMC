@@ -6,12 +6,13 @@
 
 use crate::entity::damage::DamageSource;
 use crate::entity::mob::block_pos_distance_sqr;
-use crate::entity::{BorrowedNbtCompoundView, EntityMoveError};
+use crate::entity::{BorrowedNbtCompoundView, EntityMoveError, SharedEntity};
 use crate::entity::{Entity, RemovalReason};
 use crate::physics::{MoveResult, MoverType};
 use crate::world::World;
 use glam::DVec3;
 use simdnbt::owned::{NbtCompound, NbtTag};
+use std::sync::Arc;
 use steel_registry::vanilla_damage_types;
 use steel_registry::vanilla_game_rules::MOB_GRIEFING;
 use steel_utils::BlockPos;
@@ -89,7 +90,7 @@ pub trait BlockAttachedEntity: Entity {
 
     fn recalculate_bounding_box(&self) -> Result<(), EntityMoveError>;
 
-    fn tick_block_attached_entity(&self) {
+    fn tick_block_attached_entity(self: Arc<Self>) {
         self.check_below_world();
         if self.block_attached_entity_base().should_check_survival() {
             // Check for survival.
@@ -104,13 +105,13 @@ pub trait BlockAttachedEntity: Entity {
         true
     }
 
-    fn skip_attack_interaction_block_attached_entity(&self, source: &dyn Entity) -> bool {
+    fn skip_attack_interaction_block_attached_entity(&self, source: &SharedEntity) -> bool {
         if let Some(player) = source.as_player()
             && let Some(world) = source.level()
         {
             let damage_source = DamageSource::environment(&vanilla_damage_types::PLAYER_ATTACK)
-                .with_causing_entity(player.id())
-                .with_direct_entity(player.id());
+                .with_causing_entity(Arc::clone(source))
+                .with_direct_entity(Arc::clone(source));
 
             !world.may_interact(player, self.block_attached_entity_base().pos())
                 || self.hurt(&world, &damage_source, 0.0)
@@ -129,9 +130,7 @@ pub trait BlockAttachedEntity: Entity {
             return false;
         }
 
-        let causing_entity = source
-            .causing_entity_id
-            .and_then(|id| world.get_entity_by_id(id));
+        let causing_entity = source.causing_entity();
 
         if !world.get_game_rule(&MOB_GRIEFING)
             && let Some(causing_entity) = &causing_entity
@@ -143,7 +142,7 @@ pub trait BlockAttachedEntity: Entity {
         if !self.is_removed() {
             self.kill(world);
             self.mark_hurt();
-            self.drop_item(causing_entity.as_deref());
+            self.drop_item(causing_entity.map(AsRef::as_ref));
         }
 
         true
@@ -160,7 +159,7 @@ pub trait BlockAttachedEntity: Entity {
     }
 
     fn move_entity_block_attached_entity(
-        &self,
+        self: Arc<Self>,
         _mover_type: MoverType,
         delta: DVec3,
     ) -> Option<MoveResult> {

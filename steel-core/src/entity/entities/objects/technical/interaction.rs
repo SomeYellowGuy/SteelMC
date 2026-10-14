@@ -1,6 +1,6 @@
 use crate::behavior::InteractionResult;
-use crate::entity::BorrowedNbtCompoundView;
 use crate::entity::damage::DamageSource;
+use crate::entity::{BorrowedNbtCompoundView, SharedEntity};
 use crate::entity::{Entity, EntityBase, EntityBaseLoad, EntitySyncedData};
 use crate::player::Player;
 use crate::world::World;
@@ -145,7 +145,7 @@ impl Entity for InteractionEntity {
         true
     }
 
-    fn skip_attack_interaction(&self, source: &dyn Entity) -> bool {
+    fn skip_attack_interaction(&self, source: &SharedEntity) -> bool {
         let Some(player) = source.as_player() else {
             return false;
         };
@@ -405,8 +405,8 @@ mod tests {
         );
         response_true_interaction.with_entity_data(|data| data.set_response(true));
 
-        assert!(response_false_interaction.skip_attack_interaction(player.as_ref()));
-        assert!(!response_true_interaction.skip_attack_interaction(player.as_ref()));
+        assert!(response_false_interaction.skip_attack_interaction(&player));
+        assert!(!response_true_interaction.skip_attack_interaction(&player));
     }
 
     #[test]
@@ -429,7 +429,7 @@ mod tests {
         tick_test_world(world, 1, true);
         tick_test_world(world, 2, true);
 
-        interaction.skip_attack_interaction(player.as_ref());
+        interaction.skip_attack_interaction(&player);
         assert_eq!(
             interaction.last_attack(),
             Some(PlayerAction {
@@ -460,7 +460,7 @@ mod tests {
 
         tick_test_world(world, 5, true);
 
-        interaction.skip_attack_interaction(player.as_ref());
+        interaction.skip_attack_interaction(&player);
         assert_eq!(
             interaction.last_attack(),
             Some(PlayerAction {
