@@ -14,6 +14,7 @@ use glam::DVec3;
 use simdnbt::owned::{NbtCompound, NbtTag};
 use std::sync::Arc;
 use steel_registry::vanilla_damage_types;
+use steel_registry::vanilla_game_events;
 use steel_registry::vanilla_game_rules::MOB_GRIEFING;
 use steel_utils::BlockPos;
 use steel_utils::locks::SyncMutex;
@@ -120,6 +121,16 @@ pub trait BlockAttachedEntity: Entity {
         }
     }
 
+    /// Removes this entity as killed, attributing the death game event to `attributed_to`
+    /// (or to this entity when `None`).
+    fn kill_attributed(&self, attributed_to: Option<&dyn Entity>) {
+        self.set_removed(RemovalReason::Killed);
+        self.game_event_with_source_entity(
+            &vanilla_game_events::ENTITY_DIE,
+            attributed_to.or(Some(self.as_entity_event_source())),
+        );
+    }
+
     fn hurt_block_attached_entity(
         &self,
         world: &World,
@@ -140,7 +151,7 @@ pub trait BlockAttachedEntity: Entity {
         }
 
         if !self.is_removed() {
-            self.kill(world);
+            self.kill_attributed(causing_entity.map(AsRef::as_ref));
             self.mark_hurt();
             self.drop_item(causing_entity.map(AsRef::as_ref));
         }
